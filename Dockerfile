@@ -1,15 +1,17 @@
-FROM golang:1.24.0-alpine AS builder
+FROM oven/bun:latest as builder
 
 WORKDIR /app
 
 COPY . .
+RUN bun install
+RUN bun build --target bun --format esm --outdir dist ./src/main.ts
 
-RUN CGO_ENABLED=0 go build -ldflags="-w -s" -o main main.go
-
-FROM alpine:latest
+FROM oven/bun:latest as runner
 
 WORKDIR /app
 
-COPY --from=builder /app/main .
+COPY --from=builder /app/dist ./dist  
+COPY --from=builder /app/src /app/
+COPY --from=builder /app/node_modules ./node_modules
 
-CMD ["./main"]
+CMD ["bun", "dist/main.js"]
